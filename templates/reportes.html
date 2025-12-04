@@ -1,4 +1,3 @@
-
 <!-- templates/reportes.html -->
 {% extends 'base.html' %}
 
@@ -9,22 +8,38 @@
 
 <!-- Ventas por Vendedor -->
 <div class="card shadow mb-4">
-    <div class="card-header bg-primary text-white">
-        <h5><i class="bi bi-person-badge"></i> Ventas por Vendedor</h5>
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-person-badge"></i> Ventas por Vendedor</h5>
+        <span class="badge bg-light text-dark" id="contadorVendedores">0 vendedores</span>
     </div>
     <div class="card-body">
+        <!-- Búsqueda para vendedores -->
+        <div class="mb-3">
+            <input type="text" class="form-control" id="buscarVendedor" 
+                   placeholder="🔍 Buscar vendedor...">
+        </div>
+        
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover" id="tablaVendedores">
                 <thead>
                     <tr>
-                        <th>Vendedor</th>
-                        <th>Total Ventas</th>
-                        <th>Monto Total</th>
+                        <th class="sortable" data-tabla="vendedores" data-column="vendedor" style="cursor: pointer;">
+                            Vendedor <i class="bi bi-chevron-expand"></i>
+                        </th>
+                        <th class="sortable" data-tabla="vendedores" data-column="total" style="cursor: pointer;">
+                            Total Ventas <i class="bi bi-chevron-expand"></i>
+                        </th>
+                        <th class="sortable" data-tabla="vendedores" data-column="monto" style="cursor: pointer;">
+                            Monto Total <i class="bi bi-chevron-expand"></i>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for nombre, total, monto in ventas_por_vendedor %}
-                    <tr>
+                    <tr class="vendedor-row" 
+                        data-vendedor="{{ nombre|lower }}"
+                        data-total="{{ total }}"
+                        data-monto="{{ monto or 0 }}">
                         <td>{{ nombre }}</td>
                         <td>{{ total }}</td>
                         <td><strong>S/ {{ "%.2f"|format(monto or 0) }}</strong></td>
@@ -36,29 +51,48 @@
                     {% endfor %}
                 </tbody>
             </table>
+            
+            <div id="noResultsVendedores" class="text-center py-3" style="display: none;">
+                <i class="bi bi-inbox" style="font-size: 2rem; color: #ccc;"></i>
+                <p class="text-muted mt-2">No se encontraron vendedores</p>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Productos Más Vendidos -->
 <div class="card shadow mb-4">
-    <div class="card-header bg-success text-white">
-        <h5><i class="bi bi-box-seam"></i> Top 10 Productos Más Vendidos</h5>
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-box-seam"></i> Top 10 Productos Más Vendidos</h5>
+        <span class="badge bg-light text-dark" id="contadorProductosVendidos">0 productos</span>
     </div>
     <div class="card-body">
+        <!-- Búsqueda para productos vendidos -->
+        <div class="mb-3">
+            <input type="text" class="form-control" id="buscarProductoVendido" 
+                   placeholder="🔍 Buscar producto...">
+        </div>
+        
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover" id="tablaProductosVendidos">
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Producto</th>
-                        <th>Unidades Vendidas</th>
+                        <th class="sortable" data-tabla="productos" data-column="nombre" style="cursor: pointer;">
+                            Producto <i class="bi bi-chevron-expand"></i>
+                        </th>
+                        <th class="sortable" data-tabla="productos" data-column="unidades" style="cursor: pointer;">
+                            Unidades Vendidas <i class="bi bi-chevron-expand"></i>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for nombre, total in productos_vendidos %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
+                    <tr class="producto-vendido-row" 
+                        data-nombre="{{ nombre|lower }}"
+                        data-unidades="{{ total }}"
+                        data-index="{{ loop.index }}">
+                        <td class="ranking-col">{{ loop.index }}</td>
                         <td>{{ nombre }}</td>
                         <td><span class="badge bg-success">{{ total }}</span></td>
                     </tr>
@@ -69,29 +103,50 @@
                     {% endfor %}
                 </tbody>
             </table>
+            
+            <div id="noResultsProductos" class="text-center py-3" style="display: none;">
+                <i class="bi bi-inbox" style="font-size: 2rem; color: #ccc;"></i>
+                <p class="text-muted mt-2">No se encontraron productos</p>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Productos con Stock Bajo -->
 <div class="card shadow">
-    <div class="card-header bg-warning">
-        <h5><i class="bi bi-exclamation-triangle"></i> Productos con Stock Bajo (≤10 unidades)</h5>
+    <div class="card-header bg-warning d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Productos con Stock Bajo (≤10 unidades)</h5>
+        <span class="badge bg-dark" id="contadorStockBajo">0 productos</span>
     </div>
     <div class="card-body">
+        <!-- Búsqueda para stock bajo -->
+        <div class="mb-3">
+            <input type="text" class="form-control" id="buscarStockBajo" 
+                   placeholder="🔍 Buscar producto...">
+        </div>
+        
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover" id="tablaStockBajo">
                 <thead>
                     <tr>
-                        <th>Producto</th>
-                        <th>Stock Actual</th>
-                        <th>Precio</th>
+                        <th class="sortable" data-tabla="stock" data-column="producto" style="cursor: pointer;">
+                            Producto <i class="bi bi-chevron-expand"></i>
+                        </th>
+                        <th class="sortable" data-tabla="stock" data-column="stock" style="cursor: pointer;">
+                            Stock Actual <i class="bi bi-chevron-expand"></i>
+                        </th>
+                        <th class="sortable" data-tabla="stock" data-column="precio" style="cursor: pointer;">
+                            Precio <i class="bi bi-chevron-expand"></i>
+                        </th>
                         <th>Estado</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for producto in productos_bajo_stock %}
-                    <tr>
+                    <tr class="stock-bajo-row" 
+                        data-producto="{{ producto.nombre_producto|lower }}"
+                        data-stock="{{ producto.stock }}"
+                        data-precio="{{ producto.precio }}">
                         <td>{{ producto.nombre_producto }}</td>
                         <td><strong>{{ producto.stock }}</strong></td>
                         <td>S/ {{ "%.2f"|format(producto.precio) }}</td>
@@ -106,7 +161,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr>
+                    <tr id="stockAdecuado">
                         <td colspan="4" class="text-center text-success">
                             <i class="bi bi-check-circle"></i> Todos los productos tienen stock adecuado
                         </td>
@@ -114,7 +169,206 @@
                     {% endfor %}
                 </tbody>
             </table>
+            
+            <div id="noResultsStock" class="text-center py-3" style="display: none;">
+                <i class="bi bi-inbox" style="font-size: 2rem; color: #ccc;"></i>
+                <p class="text-muted mt-2">No se encontraron productos</p>
+            </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ===== TABLA VENDEDORES =====
+    const buscarVendedor = document.getElementById('buscarVendedor');
+    const filasVendedores = document.querySelectorAll('.vendedor-row');
+    const contadorVendedores = document.getElementById('contadorVendedores');
+    const noResultsVendedores = document.getElementById('noResultsVendedores');
+    const tablaVendedores = document.getElementById('tablaVendedores');
+    
+    function filtrarVendedores() {
+        const texto = buscarVendedor.value.toLowerCase().trim();
+        let contador = 0;
+        
+        filasVendedores.forEach(fila => {
+            const vendedor = fila.dataset.vendedor;
+            if (vendedor.includes(texto)) {
+                fila.style.display = '';
+                contador++;
+            } else {
+                fila.style.display = 'none';
+            }
+        });
+        
+        contadorVendedores.textContent = `${contador} vendedores`;
+        
+        if (contador === 0 && filasVendedores.length > 0) {
+            noResultsVendedores.style.display = 'block';
+            tablaVendedores.querySelector('tbody').style.display = 'none';
+        } else {
+            noResultsVendedores.style.display = 'none';
+            tablaVendedores.querySelector('tbody').style.display = '';
+        }
+    }
+    
+    buscarVendedor.addEventListener('input', filtrarVendedores);
+    
+    // ===== TABLA PRODUCTOS VENDIDOS =====
+    const buscarProductoVendido = document.getElementById('buscarProductoVendido');
+    const filasProductosVendidos = document.querySelectorAll('.producto-vendido-row');
+    const contadorProductosVendidos = document.getElementById('contadorProductosVendidos');
+    const noResultsProductos = document.getElementById('noResultsProductos');
+    const tablaProductosVendidos = document.getElementById('tablaProductosVendidos');
+    
+    function filtrarProductosVendidos() {
+        const texto = buscarProductoVendido.value.toLowerCase().trim();
+        let contador = 0;
+        
+        filasProductosVendidos.forEach(fila => {
+            const nombre = fila.dataset.nombre;
+            if (nombre.includes(texto)) {
+                fila.style.display = '';
+                contador++;
+            } else {
+                fila.style.display = 'none';
+            }
+        });
+        
+        contadorProductosVendidos.textContent = `${contador} productos`;
+        
+        if (contador === 0 && filasProductosVendidos.length > 0) {
+            noResultsProductos.style.display = 'block';
+            tablaProductosVendidos.querySelector('tbody').style.display = 'none';
+        } else {
+            noResultsProductos.style.display = 'none';
+            tablaProductosVendidos.querySelector('tbody').style.display = '';
+        }
+    }
+    
+    buscarProductoVendido.addEventListener('input', filtrarProductosVendidos);
+    
+    // ===== TABLA STOCK BAJO =====
+    const buscarStockBajo = document.getElementById('buscarStockBajo');
+    const filasStockBajo = document.querySelectorAll('.stock-bajo-row');
+    const contadorStockBajo = document.getElementById('contadorStockBajo');
+    const noResultsStock = document.getElementById('noResultsStock');
+    const tablaStockBajo = document.getElementById('tablaStockBajo');
+    
+    function filtrarStockBajo() {
+        const texto = buscarStockBajo.value.toLowerCase().trim();
+        let contador = 0;
+        
+        filasStockBajo.forEach(fila => {
+            const producto = fila.dataset.producto;
+            if (producto.includes(texto)) {
+                fila.style.display = '';
+                contador++;
+            } else {
+                fila.style.display = 'none';
+            }
+        });
+        
+        contadorStockBajo.textContent = `${contador} productos`;
+        
+        if (contador === 0 && filasStockBajo.length > 0) {
+            noResultsStock.style.display = 'block';
+            tablaStockBajo.querySelector('tbody').style.display = 'none';
+        } else {
+            noResultsStock.style.display = 'none';
+            tablaStockBajo.querySelector('tbody').style.display = '';
+        }
+    }
+    
+    buscarStockBajo.addEventListener('input', filtrarStockBajo);
+    
+    // ===== ORDENAMIENTO GENERAL =====
+    const ordenActual = {
+        vendedores: { columna: null, direccion: 'asc' },
+        productos: { columna: null, direccion: 'asc' },
+        stock: { columna: null, direccion: 'asc' }
+    };
+    
+    function ordenarTabla(tabla, columna, tbody, filas) {
+        const orden = ordenActual[tabla];
+        
+        if (orden.columna === columna) {
+            orden.direccion = orden.direccion === 'asc' ? 'desc' : 'asc';
+        } else {
+            orden.columna = columna;
+            orden.direccion = 'asc';
+        }
+        
+        const filasArray = Array.from(filas);
+        
+        filasArray.sort((a, b) => {
+            let valorA, valorB;
+            
+            if (columna === 'vendedor' || columna === 'producto' || columna === 'nombre') {
+                valorA = a.dataset[columna] || a.dataset.vendedor || a.dataset.producto || a.dataset.nombre;
+                valorB = b.dataset[columna] || b.dataset.vendedor || b.dataset.producto || b.dataset.nombre;
+            } else {
+                valorA = parseFloat(a.dataset[columna]);
+                valorB = parseFloat(b.dataset[columna]);
+            }
+            
+            if (orden.direccion === 'asc') {
+                return valorA > valorB ? 1 : -1;
+            } else {
+                return valorA < valorB ? 1 : -1;
+            }
+        });
+        
+        filasArray.forEach((fila, index) => {
+            tbody.appendChild(fila);
+            // Actualizar números de ranking si existe
+            const rankingCol = fila.querySelector('.ranking-col');
+            if (rankingCol) {
+                rankingCol.textContent = index + 1;
+            }
+        });
+    }
+    
+    // Event listeners para ordenamiento
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.addEventListener('click', function() {
+            const tabla = this.dataset.tabla;
+            const columna = this.dataset.column;
+            
+            let tbody, filas;
+            
+            if (tabla === 'vendedores') {
+                tbody = tablaVendedores.querySelector('tbody');
+                filas = filasVendedores;
+            } else if (tabla === 'productos') {
+                tbody = tablaProductosVendidos.querySelector('tbody');
+                filas = filasProductosVendidos;
+            } else if (tabla === 'stock') {
+                tbody = tablaStockBajo.querySelector('tbody');
+                filas = filasStockBajo;
+            }
+            
+            ordenarTabla(tabla, columna, tbody, filas);
+            
+            // Actualizar iconos
+            const headers = document.querySelectorAll(`.sortable[data-tabla="${tabla}"] i`);
+            headers.forEach(icon => icon.className = 'bi bi-chevron-expand');
+            
+            const icono = this.querySelector('i');
+            if (ordenActual[tabla].direccion === 'asc') {
+                icono.className = 'bi bi-chevron-up';
+            } else {
+                icono.className = 'bi bi-chevron-down';
+            }
+        });
+    });
+    
+    // Inicializar contadores
+    filtrarVendedores();
+    filtrarProductosVendidos();
+    filtrarStockBajo();
+});
+</script>
 {% endblock %}
