@@ -1,0 +1,204 @@
+<!-- templates/nueva_venta.html -->
+{% extends 'base.html' %}
+
+{% block title %}Nueva Venta{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+    <div class="card-header bg-primary text-white">
+        <h4><i class="bi bi-cart-plus"></i> Registrar Nueva Venta</h4>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('nueva_venta') }}" id="formVenta">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <label for="id_cliente" class="form-label">Cliente *</label>
+                    <select class="form-select" id="id_cliente" name="id_cliente" required>
+                        <option value="">Seleccione un cliente</option>
+                        {% for cliente in clientes %}
+                        <option value="{{ cliente.id_cliente }}">
+                            {{ cliente.nombres }} {{ cliente.apellidos }} - {{ cliente.dni }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <hr>
+            <h5 class="mb-3">Productos</h5>
+
+            <div id="productos-container">
+                <!-- Fila de producto (plantilla) -->
+                <div class="row mb-3 producto-item">
+                    <div class="col-md-5">
+                        <label class="form-label">Producto</label>
+                        <select class="form-select producto-select" name="id_producto" required>
+                            <option value="">Seleccione...</option>
+                            {% for producto in productos %}
+                            <option value="{{ producto.id_producto }}" 
+                                    data-precio="{{ producto.precio }}" 
+                                    data-stock="{{ producto.stock }}">
+                                {{ producto.nombre_producto }} (Stock: {{ producto.stock }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Cantidad</label>
+                        <input type="number" class="form-control cantidad-input" name="cantidad" 
+                               value="1" min="1" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Precio Unit.</label>
+                        <input type="text" class="form-control precio-display" readonly value="S/ 0.00">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Subtotal</label>
+                        <input type="text" class="form-control subtotal-display" readonly value="S/ 0.00">
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="button" class="btn btn-danger btn-sm remove-producto">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" class="btn btn-secondary mb-4" id="addProducto">
+                <i class="bi bi-plus-circle"></i> Agregar Producto
+            </button>
+
+            <hr>
+
+            <div class="row">
+                <div class="col-md-8"></div>
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h5 class="mb-3">Resumen</h5>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Total:</span>
+                                <strong id="total-general" class="text-primary fs-4">S/ 0.00</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{{ url_for('ver_ventas') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-success btn-lg" id="btnRegistrar" disabled>
+                    <i class="bi bi-check-circle"></i> Registrar Venta
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let productoTemplate;
+
+document.addEventListener('DOMContentLoaded', function() {
+    productoTemplate = document.querySelector('.producto-item').cloneNode(true);
+    
+    // Agregar producto
+    document.getElementById('addProducto').addEventListener('click', function() {
+        const container = document.getElementById('productos-container');
+        const nuevoProducto = productoTemplate.cloneNode(true);
+        
+        // Limpiar valores
+        nuevoProducto.querySelector('.producto-select').value = '';
+        nuevoProducto.querySelector('.cantidad-input').value = '1';
+        nuevoProducto.querySelector('.precio-display').value = 'S/ 0.00';
+        nuevoProducto.querySelector('.subtotal-display').value = 'S/ 0.00';
+        
+        container.appendChild(nuevoProducto);
+        actualizarEventos();
+        actualizarTotal();
+    });
+    
+    // Eliminar producto
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-producto')) {
+            const items = document.querySelectorAll('.producto-item');
+            if (items.length > 1) {
+                e.target.closest('.producto-item').remove();
+                actualizarTotal();
+            }
+        }
+    });
+    
+    actualizarEventos();
+});
+
+function actualizarEventos() {
+    document.querySelectorAll('.producto-select').forEach(select => {
+        select.removeEventListener('change', handleProductoChange);
+        select.addEventListener('change', handleProductoChange);
+    });
+    
+    document.querySelectorAll('.cantidad-input').forEach(input => {
+        input.removeEventListener('input', handleCantidadChange);
+        input.addEventListener('input', handleCantidadChange);
+    });
+}
+
+function handleProductoChange(e) {
+    const row = e.target.closest('.producto-item');
+    const option = e.target.selectedOptions[0];
+    const precio = parseFloat(option.dataset.precio || 0);
+    const stock = parseInt(option.dataset.stock || 0);
+    const cantidadInput = row.querySelector('.cantidad-input');
+    
+    cantidadInput.max = stock;
+    if (parseInt(cantidadInput.value) > stock) {
+        cantidadInput.value = stock;
+    }
+    
+    calcularSubtotal(row);
+}
+
+function handleCantidadChange(e) {
+    const row = e.target.closest('.producto-item');
+    calcularSubtotal(row);
+}
+
+function calcularSubtotal(row) {
+    const select = row.querySelector('.producto-select');
+    const cantidadInput = row.querySelector('.cantidad-input');
+    const precioDisplay = row.querySelector('.precio-display');
+    const subtotalDisplay = row.querySelector('.subtotal-display');
+    
+    const option = select.selectedOptions[0];
+    const precio = parseFloat(option.dataset.precio || 0);
+    const cantidad = parseInt(cantidadInput.value) || 0;
+    const subtotal = precio * cantidad;
+    
+    precioDisplay.value = `S/ ${precio.toFixed(2)}`;
+    subtotalDisplay.value = `S/ ${subtotal.toFixed(2)}`;
+    
+    actualizarTotal();
+}
+
+function actualizarTotal() {
+    let total = 0;
+    document.querySelectorAll('.producto-item').forEach(row => {
+        const select = row.querySelector('.producto-select');
+        const cantidadInput = row.querySelector('.cantidad-input');
+        
+        if (select.value) {
+            const precio = parseFloat(select.selectedOptions[0].dataset.precio || 0);
+            const cantidad = parseInt(cantidadInput.value) || 0;
+            total += precio * cantidad;
+        }
+    });
+    
+    document.getElementById('total-general').textContent = `S/ ${total.toFixed(2)}`;
+    document.getElementById('btnRegistrar').disabled = total <= 0;
+}
+</script>
+{% endblock %}

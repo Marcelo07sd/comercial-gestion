@@ -1,0 +1,120 @@
+
+<!-- templates/reportes.html -->
+{% extends 'base.html' %}
+
+{% block title %}Reportes{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-graph-up"></i> Reportes y Estadísticas</h2>
+
+<!-- Ventas por Vendedor -->
+<div class="card shadow mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5><i class="bi bi-person-badge"></i> Ventas por Vendedor</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Vendedor</th>
+                        <th>Total Ventas</th>
+                        <th>Monto Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for nombre, total, monto in ventas_por_vendedor %}
+                    <tr>
+                        <td>{{ nombre }}</td>
+                        <td>{{ total }}</td>
+                        <td><strong>S/ {{ "%.2f"|format(monto or 0) }}</strong></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center">No hay datos</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Productos Más Vendidos -->
+<div class="card shadow mb-4">
+    <div class="card-header bg-success text-white">
+        <h5><i class="bi bi-box-seam"></i> Top 10 Productos Más Vendidos</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Producto</th>
+                        <th>Unidades Vendidas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for nombre, total in productos_vendidos %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ nombre }}</td>
+                        <td><span class="badge bg-success">{{ total }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center">No hay datos</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Productos con Stock Bajo -->
+<div class="card shadow">
+    <div class="card-header bg-warning">
+        <h5><i class="bi bi-exclamation-triangle"></i> Productos con Stock Bajo (≤10 unidades)</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Stock Actual</th>
+                        <th>Precio</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for producto in productos_bajo_stock %}
+                    <tr>
+                        <td>{{ producto.nombre_producto }}</td>
+                        <td><strong>{{ producto.stock }}</strong></td>
+                        <td>S/ {{ "%.2f"|format(producto.precio) }}</td>
+                        <td>
+                            {% if producto.stock == 0 %}
+                            <span class="badge bg-danger">AGOTADO</span>
+                            {% elif producto.stock <= 5 %}
+                            <span class="badge bg-danger">CRÍTICO</span>
+                            {% else %}
+                            <span class="badge bg-warning">BAJO</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-success">
+                            <i class="bi bi-check-circle"></i> Todos los productos tienen stock adecuado
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

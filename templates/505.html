@@ -1,0 +1,14 @@
+
+<!-- templates/500.html -->
+{% extends 'base.html' %}
+
+{% block title %}Error del servidor{% endblock %}
+
+{% block content %}
+<div class="text-center mt-5">
+    <i class="bi bi-x-circle" style="font-size: 5rem; color: #dc3545;"></i>
+    <h1 class="mt-3">500 - Error del servidor</h1>
+    <p class="lead">Ha ocurrido un error interno</p>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">Volver al inicio</a>
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+
+<!-- templates/productos.html -->
+{% extends 'base.html' %}
+
+{% block title %}Productos{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-box-seam"></i> Productos</h2>
+    {% if current_user.tiene_permiso('crear') %}
+    <a href="{{ url_for('nuevo_producto') }}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Nuevo Producto
+    </a>
+    {% endif %}
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Precio</th>
+                        <th>Stock</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for producto in productos %}
+                    <tr>
+                        <td>{{ producto.id_producto }}</td>
+                        <td>{{ producto.nombre_producto }}</td>
+                        <td>{{ producto.descripcion }}</td>
+                        <td>S/ {{ "%.2f"|format(producto.precio) }}</td>
+                        <td>{{ producto.stock }}</td>
+                        <td>
+                            {% if producto.stock == 0 %}
+                            <span class="badge bg-danger">Agotado</span>
+                            {% elif producto.stock <= 10 %}
+                            <span class="badge bg-warning">Stock Bajo</span>
+                            {% else %}
+                            <span class="badge bg-success">Disponible</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if current_user.tiene_permiso('actualizar') %}
+                            <a href="{{ url_for('editar_producto', id=producto.id_producto) }}" 
+                               class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                            
+                            {% if current_user.tiene_permiso('eliminar') %}
+                            <form method="POST" action="{{ url_for('eliminar_producto', id=producto.id_producto) }}" 
+                                  class="d-inline" onsubmit="return confirm('¿Eliminar este producto?')">
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">No hay productos registrados</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

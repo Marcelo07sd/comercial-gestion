@@ -1,0 +1,54 @@
+
+<!-- templates/auditoria.html -->
+{% extends 'base.html' %}
+
+{% block title %}Auditoría{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-clock-history"></i> Registro de Auditoría</h2>
+
+<div class="card shadow">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Usuario</th>
+                        <th>Tabla</th>
+                        <th>Acción</th>
+                        <th>ID Registro</th>
+                        <th>Datos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for auditoria in auditorias %}
+                    <tr>
+                        <td>{{ auditoria.id_auditoria }}</td>
+                        <td>{{ auditoria.fecha.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                        <td>{{ auditoria.usuario_sql }}</td>
+                        <td>
+                            <span class="badge bg-secondary">{{ auditoria.tabla }}</span>
+                        </td>
+                        <td>
+                            {% if auditoria.accion == 'INSERT' %}
+                            <span class="badge bg-success">{{ auditoria.accion }}</span>
+                            {% elif auditoria.accion == 'UPDATE' %}
+                            <span class="badge bg-warning">{{ auditoria.accion }}</span>
+                            {% elif auditoria.accion == 'DELETE' %}
+                            <span class="badge bg-danger">{{ auditoria.accion }}</span>
+                            {% else %}
+                            <span class="badge bg-info">{{ auditoria.accion }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ auditoria.id_registro }}</td>
+                        <td><small>{{ auditoria.datos[:50] }}...</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
