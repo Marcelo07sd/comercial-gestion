@@ -13,16 +13,49 @@
     {% endif %}
 </div>
 
+<!-- Barra de búsqueda -->
+<div class="card shadow mb-3">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-8">
+                <label for="buscarCliente" class="form-label">
+                    <i class="bi bi-search"></i> Buscar cliente
+                </label>
+                <input type="text" class="form-control" id="buscarCliente" 
+                       placeholder="Buscar por DNI, nombres o apellidos...">
+            </div>
+
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100" id="btnLimpiar">
+                    <i class="bi bi-arrow-counterclockwise"></i> Limpiar
+                </button>
+            </div>
+
+            <div class="col-md-2">
+                <div class="alert alert-info mb-0 py-2 text-center" id="contador">
+                    <small><strong id="contadorNumero">0</strong> clientes</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="card shadow">
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover" id="tablaClientes">
                 <thead class="table-dark">
                     <tr>
                         <th>ID</th>
-                        <th>DNI</th>
-                        <th>Nombres</th>
-                        <th>Apellidos</th>
+                        <th class="sortable" data-column="dni" style="cursor: pointer;">
+                            DNI <i class="bi bi-chevron-expand"></i>
+                        </th>
+                        <th class="sortable" data-column="nombres" style="cursor: pointer;">
+                            Nombres <i class="bi bi-chevron-expand"></i>
+                        </th>
+                        <th class="sortable" data-column="apellidos" style="cursor: pointer;">
+                            Apellidos <i class="bi bi-chevron-expand"></i>
+                        </th>
                         <th>Dirección</th>
                         <th>Teléfono</th>
                         <th>Acciones</th>
@@ -30,11 +63,15 @@
                 </thead>
                 <tbody>
                     {% for cliente in clientes %}
-                    <tr>
+                    <tr class="cliente-row" 
+                        data-dni="{{ cliente.dni }}"
+                        data-nombres="{{ cliente.nombres|lower }}"
+                        data-apellidos="{{ cliente.apellidos|lower }}"
+                        data-busqueda="{{ (cliente.dni + ' ' + cliente.nombres + ' ' + cliente.apellidos)|lower }}">
                         <td>{{ cliente.id_cliente }}</td>
-                        <td>{{ cliente.dni }}</td>
-                        <td>{{ cliente.nombres }}</td>
-                        <td>{{ cliente.apellidos }}</td>
+                        <td class="dni-col">{{ cliente.dni }}</td>
+                        <td class="nombres-col">{{ cliente.nombres }}</td>
+                        <td class="apellidos-col">{{ cliente.apellidos }}</td>
                         <td>{{ cliente.direccion or '-' }}</td>
                         <td>{{ cliente.telefono or '-' }}</td>
                         <td>
@@ -56,13 +93,137 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr>
+                    <tr id="noData">
                         <td colspan="7" class="text-center">No hay clientes registrados</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+            
+            <div id="noResults" class="text-center py-4" style="display: none;">
+                <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+                <p class="text-muted mt-2">No se encontraron clientes</p>
+            </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const buscarInput = document.getElementById('buscarCliente');
+    const btnLimpiar = document.getElementById('btnLimpiar');
+    const filas = document.querySelectorAll('.cliente-row');
+    const contadorNumero = document.getElementById('contadorNumero');
+    const noResults = document.getElementById('noResults');
+    const tabla = document.getElementById('tablaClientes');
+    
+    let ordenActual = { columna: null, direccion: 'asc' };
+    
+    // Función para filtrar clientes
+    function filtrarClientes() {
+        const textoBusqueda = buscarInput.value.toLowerCase().trim();
+        let contador = 0;
+        
+        filas.forEach(fila => {
+            const datoBusqueda = fila.dataset.busqueda;
+            
+            // Filtro de búsqueda
+            const coincide = datoBusqueda.includes(textoBusqueda);
+            
+            // Mostrar/ocultar fila
+            if (coincide) {
+                fila.style.display = '';
+                contador++;
+            } else {
+                fila.style.display = 'none';
+            }
+        });
+        
+        // Actualizar contador
+        contadorNumero.textContent = contador;
+        
+        // Mostrar mensaje si no hay resultados
+        if (contador === 0) {
+            noResults.style.display = 'block';
+            tabla.style.display = 'none';
+        } else {
+            noResults.style.display = 'none';
+            tabla.style.display = 'table';
+        }
+    }
+    
+    // Función para ordenar tabla
+    function ordenarTabla(columna) {
+        const tbody = tabla.querySelector('tbody');
+        const filasArray = Array.from(filas);
+        
+        // Cambiar dirección si es la misma columna
+        if (ordenActual.columna === columna) {
+            ordenActual.direccion = ordenActual.direccion === 'asc' ? 'desc' : 'asc';
+        } else {
+            ordenActual.columna = columna;
+            ordenActual.direccion = 'asc';
+        }
+        
+        // Ordenar filas
+        filasArray.sort((a, b) => {
+            let valorA, valorB;
+            
+            if (columna === 'dni') {
+                valorA = a.dataset.dni;
+                valorB = b.dataset.dni;
+            } else if (columna === 'nombres') {
+                valorA = a.dataset.nombres;
+                valorB = b.dataset.nombres;
+            } else if (columna === 'apellidos') {
+                valorA = a.dataset.apellidos;
+                valorB = b.dataset.apellidos;
+            }
+            
+            if (ordenActual.direccion === 'asc') {
+                return valorA > valorB ? 1 : -1;
+            } else {
+                return valorA < valorB ? 1 : -1;
+            }
+        });
+        
+        // Reinsertar filas ordenadas
+        filasArray.forEach(fila => tbody.appendChild(fila));
+        
+        // Actualizar iconos
+        document.querySelectorAll('.sortable i').forEach(icon => {
+            icon.className = 'bi bi-chevron-expand';
+        });
+        
+        const iconoActual = document.querySelector(`.sortable[data-column="${columna}"] i`);
+        if (ordenActual.direccion === 'asc') {
+            iconoActual.className = 'bi bi-chevron-up';
+        } else {
+            iconoActual.className = 'bi bi-chevron-down';
+        }
+    }
+    
+    // Función para limpiar filtros
+    function limpiarFiltros() {
+        buscarInput.value = '';
+        filtrarClientes();
+    }
+    
+    // Event listeners
+    buscarInput.addEventListener('input', filtrarClientes);
+    btnLimpiar.addEventListener('click', limpiarFiltros);
+    
+    // Ordenar al hacer click en headers
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.addEventListener('click', function() {
+            ordenarTabla(this.dataset.column);
+        });
+    });
+    
+    // Inicializar contador
+    filtrarClientes();
+});
+</script>
 {% endblock %}
