@@ -1,4 +1,3 @@
-
 <!-- templates/productos.html -->
 {% extends 'base.html' %}
 
@@ -14,36 +13,84 @@
     {% endif %}
 </div>
 
+<!-- Barra de búsqueda y filtros -->
+<div class="card shadow mb-3">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label for="buscarProducto" class="form-label">
+                    <i class="bi bi-search"></i> Buscar producto
+                </label>
+                <input type="text" class="form-control" id="buscarProducto" 
+                       placeholder="Buscar por nombre...">
+            </div>
+            
+            <div class="col-md-3">
+                <label for="filtroStock" class="form-label">
+                    <i class="bi bi-funnel"></i> Filtrar por stock
+                </label>
+                <select class="form-select" id="filtroStock">
+                    <option value="todos">Todos</option>
+                    <option value="disponibles">Disponibles (>10)</option>
+                    <option value="bajo">Stock Bajo (≤10)</option>
+                    <option value="agotados">Agotados (0)</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100" id="btnLimpiar">
+                    <i class="bi bi-arrow-counterclockwise"></i> Limpiar
+                </button>
+            </div>
+
+            <div class="col-md-2">
+                <div class="alert alert-info mb-0 py-2 text-center" id="contador">
+                    <small><strong id="contadorNumero">0</strong> productos</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="card shadow">
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover" id="tablaProductos">
                 <thead class="table-dark">
                     <tr>
                         <th>ID</th>
-                        <th>Nombre</th>
+                        <th class="sortable" data-column="nombre" style="cursor: pointer;">
+                            Nombre <i class="bi bi-chevron-expand"></i>
+                        </th>
                         <th>Descripción</th>
-                        <th>Precio</th>
-                        <th>Stock</th>
+                        <th class="sortable" data-column="precio" style="cursor: pointer;">
+                            Precio <i class="bi bi-chevron-expand"></i>
+                        </th>
+                        <th class="sortable" data-column="stock" style="cursor: pointer;">
+                            Stock <i class="bi bi-chevron-expand"></i>
+                        </th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for producto in productos %}
-                    <tr>
+                    <tr class="producto-row" 
+                        data-nombre="{{ producto.nombre_producto|lower }}"
+                        data-precio="{{ producto.precio }}"
+                        data-stock="{{ producto.stock }}">
                         <td>{{ producto.id_producto }}</td>
-                        <td>{{ producto.nombre_producto }}</td>
+                        <td class="nombre-col">{{ producto.nombre_producto }}</td>
                         <td>{{ producto.descripcion }}</td>
-                        <td>S/ {{ "%.2f"|format(producto.precio) }}</td>
-                        <td>{{ producto.stock }}</td>
+                        <td class="precio-col">S/ {{ "%.2f"|format(producto.precio) }}</td>
+                        <td class="stock-col">{{ producto.stock }}</td>
                         <td>
                             {% if producto.stock == 0 %}
-                            <span class="badge bg-danger">Agotado</span>
+                            <span class="badge bg-danger estado-badge">Agotado</span>
                             {% elif producto.stock <= 10 %}
-                            <span class="badge bg-warning">Stock Bajo</span>
+                            <span class="badge bg-warning estado-badge">Stock Bajo</span>
                             {% else %}
-                            <span class="badge bg-success">Disponible</span>
+                            <span class="badge bg-success estado-badge">Disponible</span>
                             {% endif %}
                         </td>
                         <td>
@@ -65,13 +112,152 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr>
+                    <tr id="noData">
                         <td colspan="7" class="text-center">No hay productos registrados</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+            
+            <div id="noResults" class="text-center py-4" style="display: none;">
+                <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+                <p class="text-muted mt-2">No se encontraron productos</p>
+            </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const buscarInput = document.getElementById('buscarProducto');
+    const filtroStock = document.getElementById('filtroStock');
+    const btnLimpiar = document.getElementById('btnLimpiar');
+    const filas = document.querySelectorAll('.producto-row');
+    const contadorNumero = document.getElementById('contadorNumero');
+    const noResults = document.getElementById('noResults');
+    const tabla = document.getElementById('tablaProductos');
+    
+    let ordenActual = { columna: null, direccion: 'asc' };
+    
+    // Función para filtrar productos
+    function filtrarProductos() {
+        const textoBusqueda = buscarInput.value.toLowerCase().trim();
+        const filtroSeleccionado = filtroStock.value;
+        let contador = 0;
+        
+        filas.forEach(fila => {
+            const nombre = fila.dataset.nombre;
+            const stock = parseInt(fila.dataset.stock);
+            
+            // Filtro de búsqueda
+            const coincideBusqueda = nombre.includes(textoBusqueda);
+            
+            // Filtro de stock
+            let coincidenStock = true;
+            if (filtroSeleccionado === 'disponibles') {
+                coincidenStock = stock > 10;
+            } else if (filtroSeleccionado === 'bajo') {
+                coincidenStock = stock > 0 && stock <= 10;
+            } else if (filtroSeleccionado === 'agotados') {
+                coincidenStock = stock === 0;
+            }
+            
+            // Mostrar/ocultar fila
+            if (coincideBusqueda && coincidenStock) {
+                fila.style.display = '';
+                contador++;
+            } else {
+                fila.style.display = 'none';
+            }
+        });
+        
+        // Actualizar contador
+        contadorNumero.textContent = contador;
+        
+        // Mostrar mensaje si no hay resultados
+        if (contador === 0) {
+            noResults.style.display = 'block';
+            tabla.style.display = 'none';
+        } else {
+            noResults.style.display = 'none';
+            tabla.style.display = 'table';
+        }
+    }
+    
+    // Función para ordenar tabla
+    function ordenarTabla(columna) {
+        const tbody = tabla.querySelector('tbody');
+        const filasArray = Array.from(filas);
+        
+        // Cambiar dirección si es la misma columna
+        if (ordenActual.columna === columna) {
+            ordenActual.direccion = ordenActual.direccion === 'asc' ? 'desc' : 'asc';
+        } else {
+            ordenActual.columna = columna;
+            ordenActual.direccion = 'asc';
+        }
+        
+        // Ordenar filas
+        filasArray.sort((a, b) => {
+            let valorA, valorB;
+            
+            if (columna === 'nombre') {
+                valorA = a.dataset.nombre;
+                valorB = b.dataset.nombre;
+            } else if (columna === 'precio') {
+                valorA = parseFloat(a.dataset.precio);
+                valorB = parseFloat(b.dataset.precio);
+            } else if (columna === 'stock') {
+                valorA = parseInt(a.dataset.stock);
+                valorB = parseInt(a.dataset.stock);
+            }
+            
+            if (ordenActual.direccion === 'asc') {
+                return valorA > valorB ? 1 : -1;
+            } else {
+                return valorA < valorB ? 1 : -1;
+            }
+        });
+        
+        // Reinsertar filas ordenadas
+        filasArray.forEach(fila => tbody.appendChild(fila));
+        
+        // Actualizar iconos
+        document.querySelectorAll('.sortable i').forEach(icon => {
+            icon.className = 'bi bi-chevron-expand';
+        });
+        
+        const iconoActual = document.querySelector(`.sortable[data-column="${columna}"] i`);
+        if (ordenActual.direccion === 'asc') {
+            iconoActual.className = 'bi bi-chevron-up';
+        } else {
+            iconoActual.className = 'bi bi-chevron-down';
+        }
+    }
+    
+    // Función para limpiar filtros
+    function limpiarFiltros() {
+        buscarInput.value = '';
+        filtroStock.value = 'todos';
+        filtrarProductos();
+    }
+    
+    // Event listeners
+    buscarInput.addEventListener('input', filtrarProductos);
+    filtroStock.addEventListener('change', filtrarProductos);
+    btnLimpiar.addEventListener('click', limpiarFiltros);
+    
+    // Ordenar al hacer click en headers
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.addEventListener('click', function() {
+            ordenarTabla(this.dataset.column);
+        });
+    });
+    
+    // Inicializar contador
+    filtrarProductos();
+});
+</script>
 {% endblock %}
